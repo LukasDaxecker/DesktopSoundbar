@@ -1,7 +1,5 @@
 # Stuff
 from random import random
-from matplotlib import pyplot as plt
-import scipy.signal as signal
 import os
 import time
 import numpy as np
@@ -12,9 +10,9 @@ import win32api
 import win32con
 import win32gui
 # Audio Input
-import scipy, matplotlib
-import wave, struct 
-import pyaudio
+import pyaudiodevice
+from pyaudiodevice import default_playback
+from pyaudiodevice.audio_common import AudioCommon
 
 def GetColors():
         try:
@@ -30,7 +28,6 @@ def GetColors():
                 return colors
         
 def GetMonitorMeasurements():
-        global screenWidth, screenHeight, pos
         try:
                 for m in get_monitors():
                         if m.is_primary:
@@ -42,30 +39,25 @@ def GetMonitorMeasurements():
         finally:
                 print("Monitor Massurements have been taken")
 
+        return screenWidth, screenHeight, pos
+
 def GetAudioDevices():
-        devices = []
-        audioInterface = pyaudio.PyAudio()
-        for i in range(audioInterface.get_device_count()):
-                if("Lautsprecher" in audioInterface.get_device_info_by_index(i).get('name')):
-                        devices.append(audioInterface.get_device_info_by_index(i))
-        
+        common = AudioCommon() 
+        return common.get_default_device() # Defaults to headset
          
 def GetHeight(screenHeight):
-        global rectHightArray
         #------------------------------------------------------------------------------------------------#
         height = 20 
         height = random() * screenHeight/4*3
+        #------------------------------------------------------------------------------------------------#
         
-        rectHightArray.append(height)
+        return height
 
-def DrawRects():
-        global colors, screenHeight, rectHightArray
+def DrawRects(colors, screenHeight, screenWidth):
         widthRect = screenWidth/len(colors)
-        rectHightArray = []
         
         for i in range(len(colors)):
-                GetHeight(screenHeight)
-                heightRect = rectHightArray[i]
+                heightRect = GetHeight(screenHeight)
                 # Change Hex to RGB
                 hex = str(colors[i]).lstrip('#')
                 RGB = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
@@ -79,8 +71,8 @@ def DrawRects():
 if __name__ =="__main__":
         colors = GetColors()
 
-        GetMonitorMeasurements()
-        GetAudioDevices()
+        screenWidth, screenHeight, pos = GetMonitorMeasurements()
+        audioDevice = GetAudioDevices()
 
         os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (0,pos)
         pygame.init()
@@ -96,14 +88,14 @@ if __name__ =="__main__":
         # Set window transparency color
         win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(*transperantColor), 0, win32con.LWA_COLORKEY)
 
+        print(default_playback.DefaultPlayback.get_volume()) 
         while not done:
                 for event in pygame.event.get():
                         if event.type == pygame.QUIT:
                                 done = True
                 screen.fill(transperantColor)
                 #--------------------------Work Space------------------------#
-                
-                DrawRects()
+                # DrawRects(colors, screenHeight, screenWidth)
 
                 #------------------------------------------------------------#
                 pygame.display.update()
